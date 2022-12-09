@@ -21,12 +21,7 @@ func main() {
 
 	// Build the YAMLHandler using the mapHandler as the
 	// fallback
-// 	yaml := `
-// - path: /urlshort
-//   url: https://github.com/gophercises/urlshort
-// - path: /urlshort-final
-//   url: https://github.com/gophercises/urlshort/tree/solution
-// `
+
 	yamlHandler, err := handler.YAMLHandler([]byte(*yamlFlag), mapHandler)
 	if err != nil {
 		panic(err)
