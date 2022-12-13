@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -33,7 +36,42 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	return MapHandler(pathMap, fallback), nil
 }
 
-// creare a JSONHandler function similar to YAMLHandler
+// create a JSONHandler function similar to YAMLHandler
+func JSONHandler(jsonData []byte, fallback http.Handler) (http.HandlerFunc) {
+	type jsonPath []struct{
+		Path string `json:"path"`
+		Url string `json:"url"`
+	}
+
+	var pathsToUrl []jsonPath
+	if err := json.Unmarshal(jsonData, &pathsToUrl); err != nil{
+		return nil
+	}
+
+	return func(w http.ResponseWriter, r *http.Request){
+		for _, pathtourl := range pathsToUrl{
+			if pathtourl.Path == r.URL.Path{
+				http.Redirect(w, r, pathtourl.Url, http.StatusFound)
+			return
+			}
+		}
+		fallback.ServeHTTP(w, r)
+	}
+}
+
+func ParseCSV(data string) ([][]string, error) {
+	file, err := os.Open(data)
+	if err != nil {
+		log.Fatalf("Unable to open file. Tried to open: %s\n", data)
+	}
+
+	reader := csv.NewReader(file)
+	fileData, err := reader.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fileData, nil
+}
 
 func parseYAML(yml []byte) (parsedYaml []byte, err error) {
     yamlData, err := ioutil.ReadAll(strings.NewReader(string(yml)))
