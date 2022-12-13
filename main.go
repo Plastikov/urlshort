@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	yamlFlag := flag.String("File", "file.yaml", "Pass into this flag a file holding data of yaml type")
+	yamlFlag := flag.String("File", "urls.yaml", "Pass into this flag a file holding data of yaml type")
 	mux := defaultMux()
 
 	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
 		"/urlshort-godoc": "https://godoc.org/github.com/gophercises/urlshort",
 		"/yaml-godoc":     "https://godoc.org/gopkg.in/yaml.v2",
+		"/my-github": "http://github.com/plastikov",
 	}
 	mapHandler := handler.MapHandler(pathsToUrls, mux)
 
@@ -38,5 +39,18 @@ func defaultMux() *http.ServeMux {
 
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, world!")
+	asciiArt := `
+	_____
+   /    /|_ ___________________________________________
+  /    // /|                                          /|
+ (====|/ //   An apple a day...            _QP_      / |
+  (=====|/     keeps the teacher at bay   (  ' )    / .|
+ (====|/                                   \__/    / /||
+/_________________________________________________/ / ||
+|  _____________________________________________  ||  ||
+| ||                                            | ||
+| ||                                            | ||
+| |                                             | |  pjb
+	`
+	fmt.Fprintln(w, asciiArt)
 }
