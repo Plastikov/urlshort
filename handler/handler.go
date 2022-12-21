@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/boltdb/bolt"
 	"gopkg.in/yaml.v3"
 )
 
-func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
+func MapHandler(pathUrls map[string]string, fallback http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		if dest, ok := pathsToUrls[path]; ok {
+		if dest, ok := pathUrls[path]; ok {
 			http.Redirect(w, r, dest, http.StatusFound)
 			return
 		}
@@ -36,12 +37,12 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 // create a JSONHandler function similar to YAMLHandler
 func JSONHandler(jsonData []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	type jsonPath []struct{
+	type UrlPath struct{
 		Path string `json:"path"`
-		Url string `json:"url"`
+		Url  string `json:"url"`
 	}
 
-	var pathsToUrl []jsonPath
+	var pathsToUrl []UrlPath
 	if err := json.Unmarshal(jsonData, &pathsToUrl); err != nil{
 		return nil, err
 	}
@@ -50,11 +51,28 @@ func JSONHandler(jsonData []byte, fallback http.Handler) (http.HandlerFunc, erro
 		for _, pathtourl := range pathsToUrl{
 			if pathtourl.Path == r.URL.Path{
 				http.Redirect(w, r, pathtourl.Url, http.StatusFound)
-			return
+				return
 			}
 		}
 		fallback.ServeHTTP(w, r)
 	}, nil
+}
+
+func DBHandler(db bolt.DB, fallback http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		var url string
+		if err := db.View(func(tx *bolt.Tx)error{
+			p := tx.Bucket([]byte("pathurls"))
+			u := p.Get([]byte(r.URL.Path))
+			url = string(u)
+			return nil
+		});err == nil && url != "" {
+			http.Redirect(w, r, url, http.StatusFound)
+		} else {
+			fallback.ServeHTTP(w, r)
+		}
+			
+	}
 }
 
 func parseYAML(yml []byte) (parsedYaml []byte, err error) {
